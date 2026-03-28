@@ -24,12 +24,16 @@ public class PurchaseService {
         Dealer dealer = dealerRepository.findById(dto.getDealerId())
                 .orElseThrow(() -> new RuntimeException("Dealer not found: " + dto.getDealerId()));
 
-        Purchase purchase = Purchase.builder()
-                .dealer(dealer)
-                .purchaseDate(LocalDate.now())
-                .status(PurchaseStatus.PENDING)
-                .build();
+        // Save purchase first to get a valid ID
+        Purchase purchase = purchaseRepository.save(
+                Purchase.builder()
+                        .dealer(dealer)
+                        .purchaseDate(LocalDate.now())
+                        .status(PurchaseStatus.PENDING)
+                        .build()
+        );
 
+        // Now build items referencing the saved purchase
         List<PurchaseItem> items = dto.getItems().stream().map(itemDTO -> {
             ProduceLot lot = produceLotRepository.findById(itemDTO.getLotId())
                     .orElseThrow(() -> new RuntimeException("Lot not found: " + itemDTO.getLotId()));

@@ -11,6 +11,8 @@ public class PurchaseItem {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long purchaseItemId;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name = "purchaseId", nullable = false)
     private Purchase purchase;

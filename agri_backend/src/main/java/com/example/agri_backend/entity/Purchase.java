@@ -3,6 +3,7 @@ package com.example.agri_backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -23,8 +24,11 @@ public class Purchase {
     @Column(nullable = false)
     private PurchaseStatus status;
 
-    @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL)
-    private List<PurchaseItem> items;
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<PurchaseItem> items = new ArrayList<>();
 
     public enum PurchaseStatus { PENDING, CONFIRMED, CANCELLED }
 }
