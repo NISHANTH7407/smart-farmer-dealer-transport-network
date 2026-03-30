@@ -28,20 +28,18 @@ apiClient.interceptors.response.use(
   async (error) => {
     if (error.response) {
       if (error.response.status === 401) {
-        clearAuth(); 
-        window.location.href = '/login';
+        clearAuth();
+        window.location.href = '/login/farmer';
         return Promise.reject(error);
       }
-      
-      if (error.response.status === 403) {
-        window.location.href = '/unauthorized';
-        return Promise.reject(error);
-      }
-      
-      if (error.response.status >= 500) {
-        toast.error('Server error occurred. Please try again later.');
-        return Promise.reject(error);
-      }
+      // Do NOT redirect on 403 — let the component handle it with a toast
+      const message =
+        error.response.data?.error ||
+        error.response.data?.message ||
+        `Request failed (${error.response.status})`;
+      toast.error(message);
+    } else {
+      toast.error('Network error — is the backend running?');
     }
     return Promise.reject(error);
   }

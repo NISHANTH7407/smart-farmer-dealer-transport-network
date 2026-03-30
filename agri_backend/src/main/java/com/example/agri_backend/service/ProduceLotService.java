@@ -27,6 +27,7 @@ public class ProduceLotService {
                 .harvestDate(dto.getHarvestDate())
                 .qualityGrade(dto.getQualityGrade())
                 .availableQuantity(dto.getQuantity())
+                .imageUrl(dto.getImageUrl())
                 .build();
         return toDTO(produceLotRepository.save(lot));
     }
@@ -54,6 +55,7 @@ public class ProduceLotService {
         dto.setHarvestDate(l.getHarvestDate());
         dto.setQualityGrade(l.getQualityGrade());
         dto.setAvailableQuantity(l.getAvailableQuantity());
+        dto.setImageUrl(l.getImageUrl());
         return dto;
     }
 }

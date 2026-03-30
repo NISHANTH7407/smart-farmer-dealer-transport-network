@@ -9,9 +9,7 @@ import java.time.LocalDate;
 @Data
 public class ProduceLotDTO {
     private Long lotId;
-
-    @NotNull
-    private Long farmerId;
+    private Long farmerId;  // set by controller from path, not required in body
 
     @NotBlank
     private String cropType;
@@ -25,4 +23,5 @@ public class ProduceLotDTO {
     private LocalDate harvestDate;
     private String qualityGrade;
     private Double availableQuantity;
+    private String imageUrl;  // base64 image from frontend
 }

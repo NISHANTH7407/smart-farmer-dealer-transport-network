@@ -26,7 +26,7 @@ public class Purchase {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "purchase", fetch = FetchType.EAGER)
     @Builder.Default
     private List<PurchaseItem> items = new ArrayList<>();
 

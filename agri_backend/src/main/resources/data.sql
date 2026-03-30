@@ -73,6 +73,18 @@ INSERT IGNORE INTO shipment (shipment_id, transporter_id, from_party_id, to_part
 (4, 4, 4, 9,  'DELIVERED',  '2024-04-05', '2024-04-07'),
 (5, 5, 5, 10, 'IN_TRANSIT', '2024-04-06', NULL);
 
+-- USERS (password = 'password123')
+DELETE FROM users WHERE user_id IN (1,2,3,4,5,6,7,8);
+INSERT IGNORE INTO users (user_id, username, password, role, name, entity_id) VALUES
+(1,  'farmer1',      '$2a$10$Gvow3S2O18gJ7S4ptn/q2ut9bxeOtjDkFnZPVI08ss6ZZ61ITDOnu', 'FARMER',      'Ravi Kumar',     1),
+(2,  'farmer2',      '$2a$10$Gvow3S2O18gJ7S4ptn/q2ut9bxeOtjDkFnZPVI08ss6ZZ61ITDOnu', 'FARMER',      'Suresh Patel',   2),
+(3,  'farmer3',      '$2a$10$Gvow3S2O18gJ7S4ptn/q2ut9bxeOtjDkFnZPVI08ss6ZZ61ITDOnu', 'FARMER',      'Meena Devi',     3),
+(4,  'dealer1',      '$2a$10$Gvow3S2O18gJ7S4ptn/q2ut9bxeOtjDkFnZPVI08ss6ZZ61ITDOnu', 'DEALER',      'Amit Sharma',    1),
+(5,  'dealer2',      '$2a$10$Gvow3S2O18gJ7S4ptn/q2ut9bxeOtjDkFnZPVI08ss6ZZ61ITDOnu', 'DEALER',      'Priya Traders',  2),
+(6,  'transporter1', '$2a$10$Gvow3S2O18gJ7S4ptn/q2ut9bxeOtjDkFnZPVI08ss6ZZ61ITDOnu', 'TRANSPORTER', 'FastMove Logistics', 1),
+(7,  'transporter2', '$2a$10$Gvow3S2O18gJ7S4ptn/q2ut9bxeOtjDkFnZPVI08ss6ZZ61ITDOnu', 'TRANSPORTER', 'SpeedCargo',     2),
+(8,  'admin',        '$2a$10$Gvow3S2O18gJ7S4ptn/q2ut9bxeOtjDkFnZPVI08ss6ZZ61ITDOnu', 'ADMIN',       'Admin User',     NULL);
+
 -- PAYMENT
 INSERT IGNORE INTO payment (payment_id, purchase_id, amount, payment_date, status) VALUES
 (1, 1,  9000.00, '2024-04-03', 'PAID'),

@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -18,13 +19,14 @@ public class PurchaseService {
     private final PurchaseRepository purchaseRepository;
     private final DealerRepository dealerRepository;
     private final ProduceLotRepository produceLotRepository;
+    private final PurchaseItemRepository purchaseItemRepository;
 
     @Transactional
     public PurchaseDTO create(PurchaseDTO dto) {
         Dealer dealer = dealerRepository.findById(dto.getDealerId())
                 .orElseThrow(() -> new RuntimeException("Dealer not found: " + dto.getDealerId()));
 
-        // Save purchase first to get a valid ID
+        // 1. Save purchase first
         Purchase purchase = purchaseRepository.save(
                 Purchase.builder()
                         .dealer(dealer)
@@ -33,27 +35,32 @@ public class PurchaseService {
                         .build()
         );
 
-        // Now build items referencing the saved purchase
-        List<PurchaseItem> items = dto.getItems().stream().map(itemDTO -> {
+        // 2. Save each item separately (avoid immutable list cascade issue)
+        List<PurchaseItem> savedItems = new ArrayList<>();
+        for (PurchaseItemDTO itemDTO : dto.getItems()) {
             ProduceLot lot = produceLotRepository.findById(itemDTO.getLotId())
                     .orElseThrow(() -> new RuntimeException("Lot not found: " + itemDTO.getLotId()));
 
             if (lot.getAvailableQuantity() < itemDTO.getQuantity())
-                throw new RuntimeException("Insufficient quantity for lot: " + lot.getLotId());
+                throw new RuntimeException("Insufficient quantity for lot #" + lot.getLotId()
+                        + ". Available: " + lot.getAvailableQuantity());
 
             lot.setAvailableQuantity(lot.getAvailableQuantity() - itemDTO.getQuantity());
             produceLotRepository.save(lot);
 
-            return PurchaseItem.builder()
-                    .purchase(purchase)
-                    .lot(lot)
-                    .quantity(itemDTO.getQuantity())
-                    .pricePerUnit(itemDTO.getPricePerUnit())
-                    .build();
-        }).toList();
+            PurchaseItem item = purchaseItemRepository.save(
+                    PurchaseItem.builder()
+                            .purchase(purchase)
+                            .lot(lot)
+                            .quantity(itemDTO.getQuantity())
+                            .pricePerUnit(itemDTO.getPricePerUnit())
+                            .build()
+            );
+            savedItems.add(item);
+        }
 
-        purchase.setItems(items);
-        return toDTO(purchaseRepository.save(purchase));
+        purchase.setItems(savedItems);
+        return toDTO(purchase);
     }
 
     public List<PurchaseDTO> getAll() {

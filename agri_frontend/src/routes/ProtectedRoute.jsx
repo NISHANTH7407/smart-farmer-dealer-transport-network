@@ -1,20 +1,20 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { isAuthenticated, getUserRole } from '../utils/auth';
+import { useAuth } from '../context/AuthContext';
+import Loader from '../components/ui/Loader';
 
-const ProtectedRoute = ({ allowedRoles }) => {
-  const isAuth = isAuthenticated();
-  
-  if (!isAuth) {
-    return <Navigate to="/login" replace />;
+const ProtectedRoute = ({ allowedRoles, children }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) return <Loader fullScreen />;
+  if (!isAuthenticated) return <Navigate to="/login/farmer" replace />;
+
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    const roleRedirects = { FARMER: '/dashboard/farmer', DEALER: '/dashboard/dealer', TRANSPORTER: '/dashboard/transporter' };
+    return <Navigate to={roleRedirects[user?.role] || '/login/farmer'} replace />;
   }
 
-  const role = getUserRole();
-  if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <Outlet />;
+  return children ? children : <Outlet />;
 };
 
 export default ProtectedRoute;

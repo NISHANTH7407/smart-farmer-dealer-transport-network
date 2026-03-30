@@ -34,7 +34,7 @@ public class FarmerController {
     }
 
     @PostMapping("/{id}/lots")
-    public ResponseEntity<ProduceLotDTO> addLot(@PathVariable Long id, @Valid @RequestBody ProduceLotDTO dto) {
+    public ResponseEntity<ProduceLotDTO> addLot(@PathVariable Long id, @RequestBody ProduceLotDTO dto) {
         dto.setFarmerId(id);
         return ResponseEntity.ok(produceLotService.create(dto));
     }

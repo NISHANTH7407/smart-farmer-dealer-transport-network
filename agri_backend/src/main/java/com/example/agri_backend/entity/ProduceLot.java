@@ -31,4 +31,7 @@ public class ProduceLot {
 
     @Column(nullable = false)
     private Double availableQuantity;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String imageUrl;
 }
