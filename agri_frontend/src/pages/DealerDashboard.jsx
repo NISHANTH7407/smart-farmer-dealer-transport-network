@@ -13,6 +13,10 @@ import Modal from '../components/ui/Modal';
 import PurchaseForm from '../components/forms/PurchaseForm';
 import toast from 'react-hot-toast';
 import { ShoppingCart, CreditCard, Package, Leaf, Truck } from 'lucide-react';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const StatusBadge = ({ status }) => {
   const colors = {
@@ -132,6 +136,38 @@ const DealerDashboard = () => {
     { label: 'Pending',        value: purchases.filter(p => p.status === 'PENDING').length,   icon: <CreditCard size={22} />,   color: '#b45309' },
   ];
 
+  const last6Months = Array.from({length: 6}, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - (5 - i));
+    return { month: d.toLocaleString('default', { month: 'short' }), year: d.getFullYear(), total: 0 };
+  });
+
+  purchases.forEach(p => {
+    if (!p.purchaseDate) return;
+    const pd = new Date(p.purchaseDate);
+    const match = last6Months.find(m => m.month === pd.toLocaleString('default', { month: 'short' }) && m.year === pd.getFullYear());
+    if (match) {
+      match.total += (p.items || []).reduce((sum, item) => sum + ((item.quantity || 0) * (item.pricePerUnit || 0)), 0);
+    }
+  });
+
+  const chartData = {
+    labels: last6Months.map(m => m.month),
+    datasets: [{
+      label: 'Purchase Value (₹)',
+      data: last6Months.map(m => m.total),
+      backgroundColor: '#15803d',
+      borderRadius: 4,
+    }]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
@@ -159,6 +195,12 @@ const DealerDashboard = () => {
           </div>
         ))}
       </div>
+
+      <Card title="Monthly Purchase Value (Last 6 Months)">
+        <div style={{ height: '300px', width: '100%' }}>
+          <Bar data={chartData} options={chartOptions} />
+        </div>
+      </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
 

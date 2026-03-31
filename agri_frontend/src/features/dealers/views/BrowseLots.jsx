@@ -14,6 +14,76 @@ import Badge from '../../../components/ui/Badge';
 import InputField from '../../../components/ui/InputField';
 import Modal from '../../../components/ui/Modal';
 
+const MandiTicker = () => {
+  const [tickerData, setTickerData] = useState([]);
+
+  React.useEffect(() => {
+    const fallbackData = [
+      "🌾 Tomato · Coimbatore · ₹1,240/quintal",
+      "🌾 Onion · Chennai · ₹980/quintal",
+      "🌾 Potato · Madurai · ₹1,500/quintal",
+      "🌾 Cabbage · Trichy · ₹800/quintal",
+      "🌾 Carrot · Ooty · ₹2,100/quintal"
+    ];
+
+    const fetchMandiData = async () => {
+      try {
+        const res = await fetch("https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070?api-key=579b464db66ec23bdd000001cdd3084f5a844e9a6a3e9e8d06759f3e&format=json&limit=20");
+        if (!res.ok) throw new Error("API failed");
+        const data = await res.json();
+        
+        if (data && data.records && data.records.length > 0) {
+          const formatted = data.records.map(r => `🌾 ${r.commodity || 'Unknown'} · ${r.market || 'Unknown'} · ₹${r.modal_price || r.max_price || 0}/quintal`);
+          setTickerData(formatted);
+        } else {
+          setTickerData(fallbackData);
+        }
+      } catch (err) {
+        setTickerData(fallbackData);
+      }
+    };
+
+    fetchMandiData();
+  }, []);
+
+  if (tickerData.length === 0) return null;
+
+  return (
+    <div style={{
+      margin: '-1.5rem -1.5rem 1.5rem -1.5rem',
+      background: 'var(--primary)',
+      color: '#ffffff',
+      padding: '0.6rem 0',
+      overflow: 'hidden',
+      whiteSpace: 'nowrap',
+      position: 'sticky',
+      top: '-1.5rem',
+      zIndex: 40,
+      boxShadow: 'var(--shadow-md)',
+      display: 'flex',
+      alignItems: 'center'
+    }}>
+      <div style={{
+        display: 'inline-block',
+        whiteSpace: 'nowrap',
+        animation: 'tickerScroll 25s linear infinite',
+        paddingLeft: '100%',
+        fontWeight: 600,
+        fontSize: '0.9rem',
+        letterSpacing: '0.02em'
+      }}>
+        {tickerData.join('  |  ')}
+      </div>
+      <style>{`
+        @keyframes tickerScroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-100%); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
   React.useEffect(() => {
@@ -75,9 +145,11 @@ const BrowseLots = () => {
   };
 
   return (
-    <div className="animate-fade-in relative flex items-start gap-6">
-      <div style={{ flex: 1 }}>
-        <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+    <div className="animate-fade-in relative">
+      <MandiTicker />
+      <div className="flex items-start gap-6">
+        <div style={{ flex: 1 }}>
+          <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <h1 style={{ fontSize: '1.5rem', color: 'var(--text-dark)' }}>{t('nav.browse')}</h1>
           <div className="flex gap-4 items-center" style={{ flexWrap: 'wrap' }}>
             <InputField 
@@ -209,6 +281,7 @@ const BrowseLots = () => {
            </div>
          )}
       </Modal>
+      </div>
     </div>
   );
 };

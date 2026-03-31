@@ -9,6 +9,10 @@ import Modal from '../components/ui/Modal';
 import AddProduceForm from '../components/forms/AddProduceForm';
 import toast from 'react-hot-toast';
 import { Package, Truck, Plus, Leaf } from 'lucide-react';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const StatusBadge = ({ status }) => {
   const colors = {
@@ -60,6 +64,27 @@ const FarmerDashboard = () => {
     { label: 'Shipments', value: shipments.length, icon: <Truck size={22} />, color: '#b45309' },
   ];
 
+  const lotsAvailable = lots.filter(l => (l.availableQuantity || 0) > 0).length;
+  const lotsSold = lots.filter(l => (l.quantity || 0) > 0 && (l.availableQuantity || 0) === 0).length;
+  const lotsPending = lots.filter(l => l.status === 'PENDING').length || 0; 
+  
+  const chartData = {
+    labels: ['Available', 'Sold', 'Pending'],
+    datasets: [{
+      label: 'Number of Lots',
+      data: [lotsAvailable, lotsSold, lotsPending],
+      backgroundColor: ['#22c55e', '#15803d', '#f59e0b'],
+      borderRadius: 6,
+    }]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Header */}
@@ -90,6 +115,12 @@ const FarmerDashboard = () => {
           </div>
         ))}
       </div>
+
+      <Card title="My Lots by Status">
+        <div style={{ height: '300px', width: '100%' }}>
+          <Bar data={chartData} options={chartOptions} />
+        </div>
+      </Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
         {/* Produce Lots */}

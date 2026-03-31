@@ -6,6 +6,10 @@ import Card from '../components/ui/Card';
 import Loader from '../components/ui/Loader';
 import toast from 'react-hot-toast';
 import { Truck, CheckCircle, Clock, IndianRupee } from 'lucide-react';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const StatusBadge = ({ status }) => {
   const colors = {
@@ -49,6 +53,36 @@ const TransporterDashboard = () => {
     { label: 'Total Earnings',  value: `₹${totalEarnings.toLocaleString()}`, icon: <IndianRupee size={22} />, color: '#7c3aed' },
   ];
 
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  const thisMonthShipments = shipments.filter(s => {
+    if (!s.shipmentDate) return false;
+    const d = new Date(s.shipmentDate);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+
+  const sPending = thisMonthShipments.filter(s => s.status === 'PENDING').length;
+  const sInTransit = thisMonthShipments.filter(s => s.status === 'IN_TRANSIT').length;
+  const sDelivered = thisMonthShipments.filter(s => s.status === 'DELIVERED').length;
+
+  const chartData = {
+    labels: ['Pending', 'In Transit', 'Delivered'],
+    datasets: [{
+      label: 'Deliveries This Month',
+      data: [sPending, sInTransit, sDelivered],
+      backgroundColor: ['#f59e0b', '#3b82f6', '#15803d'],
+      borderRadius: 4,
+    }]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
@@ -69,6 +103,12 @@ const TransporterDashboard = () => {
           </div>
         ))}
       </div>
+
+      <Card title="Deliveries This Month">
+        <div style={{ height: '300px', width: '100%' }}>
+          <Bar data={chartData} options={chartOptions} />
+        </div>
+      </Card>
 
       {/* Shipments Table */}
       <Card title="Assigned Shipments">

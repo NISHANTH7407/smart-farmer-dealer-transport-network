@@ -16,6 +16,7 @@ const Shipments          = lazy(() => import('../features/shipments/views/Shipme
 const Payments           = lazy(() => import('../features/payments/views/PaymentsList'));
 const Transporters       = lazy(() => import('../features/transporters/views/TransportersList'));
 const Profile            = lazy(() => import('../features/profile/views/Profile'));
+const AiChat             = lazy(() => import('../features/ai/views/AiChat'));
 
 const NotFound = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '1rem' }}>
@@ -63,6 +64,7 @@ const AppRoutes = () => (
           <Route path="/payments"     element={<Payments />} />
           <Route path="/transporters" element={<Transporters />} />
           <Route path="/profile"      element={<Profile />} />
+          <Route path="/ai-chat"     element={<AiChat />} />
         </Route>
       </Route>
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Package, ShoppingCart, Truck, CreditCard, Menu, LogOut, Sun, Moon, User } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Truck, CreditCard, Menu, LogOut, Sun, Moon, User, Bot } from 'lucide-react';
 import LanguageSwitcher from '../components/ui/LanguageSwitcher';
 
 const navItems = [
@@ -15,7 +15,8 @@ const navItems = [
   { key: 'shipments', path: '/shipments',             label: 'Shipments',     icon: <Truck size={20} />,           roles: ['FARMER', 'DEALER'] },
   { key: 'assignments',path: '/assignments',          label: 'Assignments',   icon: <Truck size={20} />,           roles: ['TRANSPORTER'] },
   { key: 'payments',  path: '/payments',              label: 'Payments',      icon: <CreditCard size={20} />,      roles: ['DEALER'] },
-  { key: 'profile',   path: '/profile',               label: 'Profile',       icon: <User size={20} />,            roles: ['FARMER', 'DEALER', 'TRANSPORTER'] },
+  { key: 'ai-chat',   path: '/ai-chat',               label: 'AI Assistant',  icon: <Bot size={20} />,             roles: ['FARMER', 'DEALER', 'TRANSPORTER', 'ADMIN'] },
+  { key: 'profile',   path: '/profile',               label: 'Profile',       icon: <User size={20} />,            roles: ['FARMER', 'DEALER', 'TRANSPORTER', 'ADMIN'] },
 ];
 
 const DashboardLayout = () => {
