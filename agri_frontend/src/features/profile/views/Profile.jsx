@@ -1,204 +1,82 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../api/axios';
 import { getUserId, getUserRole } from '../../../utils/auth';
 import toast from 'react-hot-toast';
-
 import Card from '../../../components/ui/Card';
-import InputField from '../../../components/ui/InputField';
-import Button from '../../../components/ui/Button';
+
+const Field = ({ label, value }) => (
+  <div style={{ marginBottom: '1rem' }}>
+    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem' }}>
+      {label}
+    </div>
+    <div style={{ padding: '0.55rem 0.75rem', background: 'var(--bg-color)', borderRadius: '0.5rem', border: '1px solid var(--border-color)', fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+      {value || <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>Not set</span>}
+    </div>
+  </div>
+);
 
 const Profile = () => {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const userId = getUserId();
-  const role = getUserRole();
+  const role   = getUserRole();
 
-  const [isEditing, setIsEditing] = useState(false);
-  
-  // Generic profile logic just in case, but focused on TRANSPORTER for the edit functionality requested
-  const endpoint = role === 'FARMER' ? '/farmers' : role === 'DEALER' ? '/dealers' : '/transporters';
+  const endpoint = role === 'FARMER' ? `/farmers/${userId}` : role === 'DEALER' ? `/dealers/${userId}` : `/transporters/${userId}`;
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', userId, role],
-    queryFn: async () => {
-      // Often backend handles /:id or we just fetch the list and find it
-      try {
-         const res = await apiClient.get(`${endpoint}/${userId}`);
-         return res.data;
-      } catch(e) {
-         // fallback to find from all if direct get isn't there
-         const all = await apiClient.get(endpoint);
-         const idKey = role === 'FARMER' ? 'farmerId' : role === 'DEALER' ? 'dealerId' : 'transporterId';
-         return (all.data || []).find(x => String(x[idKey]) === String(userId)) || {};
-      }
-    }
+    queryFn: () => apiClient.get(endpoint).then(r => r.data),
+    enabled: !!userId,
   });
 
-  const [formData, setFormData] = useState({});
+  if (isLoading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
+  if (!profile)  return <div style={{ padding: '2rem', textAlign: 'center' }}>Profile not found</div>;
 
-  React.useEffect(() => {
-    if (profile) {
-      if (role === 'TRANSPORTER') {
-        let details = {};
-        try {
-          if (profile.vehicleDetails) details = JSON.parse(profile.vehicleDetails);
-        } catch(e) {}
-        setFormData({
-          name: profile.name || profile.party?.name || '',
-          phone: profile.phone || profile.party?.phone || '',
-          vehicleType: details.vehicleType || '',
-          vehicleNumber: details.vehicleNumber || '',
-          licenceNumber: details.licenceNumber || '',
-          address: details.address || profile.address || profile.party?.address || ''
-        });
-      } else {
-        setFormData({
-          name: profile.name || profile.party?.name || '',
-          phone: profile.phone || profile.party?.phone || '',
-          address: profile.address || profile.party?.address || '',
-          email: profile.email || profile.party?.email || ''
-        });
-      }
-    }
-  }, [profile, role]);
+  // Parse vehicleDetails JSON if transporter
+  let vehicleParsed = {};
+  if (role === 'TRANSPORTER' && profile.vehicleDetails) {
+    try { vehicleParsed = JSON.parse(profile.vehicleDetails); } catch { vehicleParsed = {}; }
+  }
 
-  const updateMutation = useMutation({
-    mutationFn: (payload) => apiClient.put(`${endpoint}/${userId}`, payload),
-    onSuccess: () => {
-      toast.success(t('common.success'));
-      queryClient.invalidateQueries(['profile']);
-      setIsEditing(false);
-    },
-    onError: () => toast.error(t('common.error'))
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSave = () => {
-    if (role === 'TRANSPORTER') {
-      const vehicleDetails = JSON.stringify({
-        vehicleType: formData.vehicleType,
-        vehicleNumber: formData.vehicleNumber,
-        licenceNumber: formData.licenceNumber,
-        address: formData.address,
-        email: profile.email || profile.party?.email
-      });
-      
-      updateMutation.mutate({
-        name: formData.name,
-        phone: formData.phone,
-        vehicleDetails
-      });
-    } else {
-      updateMutation.mutate(formData);
-    }
-  };
-
-  if (isLoading) return <div className="p-8 text-center">{t('common.loading')}</div>;
+  const name    = profile.name    || profile.party?.name    || '—';
+  const phone   = profile.phone   || profile.party?.phone   || '—';
+  const address = profile.address || profile.party?.address || '—';
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <h1 className="mb-6" style={{ fontSize: '1.5rem', color: 'var(--text-dark)', marginBottom: '1.5rem' }}>
-        {t('nav.profile')}
-      </h1>
-      
+    <div style={{ maxWidth: '560px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '1.5rem' }}>👤 My Profile</h1>
+
       <Card>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-          <InputField 
-            label={t('auth.name')} 
-            name="name" 
-            value={formData.name || ''} 
-            onChange={handleChange} 
-            disabled={!isEditing} 
-          />
-          <InputField 
-            label={t('auth.phone')} 
-            name="phone" 
-            value={formData.phone || ''} 
-            onChange={handleChange} 
-            disabled={!isEditing} 
-          />
-          
-          {role === 'TRANSPORTER' ? (
-            <>
-              <div style={{ marginBottom: '1rem' }}>
-                <label className="label">{t('transporter.vehicleType')}</label>
-                <select 
-                  name="vehicleType" 
-                  value={formData.vehicleType || ''} 
-                  onChange={handleChange}
-                  disabled={!isEditing}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', outline: 'none' }}
-                >
-                  <option value="TRUCK">Truck</option>
-                  <option value="MINI_TRUCK">Mini Truck</option>
-                  <option value="VAN">Van</option>
-                  <option value="TWO_WHEELER">Two Wheeler</option>
-                </select>
-              </div>
-              <InputField 
-                label={t('transporter.vehicleNumber')} 
-                name="vehicleNumber" 
-                value={formData.vehicleNumber || ''} 
-                onChange={handleChange} 
-                disabled={!isEditing} 
-              />
-              <InputField 
-                label={t('transporter.licence')} 
-                name="licenceNumber" 
-                value={formData.licenceNumber || ''} 
-                onChange={handleChange} 
-                disabled={!isEditing} 
-              />
-              <InputField 
-                label={t('transporter.location')} 
-                name="address" 
-                value={formData.address || ''} 
-                onChange={handleChange} 
-                disabled={!isEditing} 
-              />
-            </>
-          ) : (
-            <>
-              <InputField 
-                label={t('auth.email')} 
-                name="email" 
-                value={formData.email || ''} 
-                onChange={handleChange} 
-                disabled={!isEditing} 
-              />
-              <InputField 
-                label={t('auth.address')} 
-                name="address" 
-                value={formData.address || ''} 
-                onChange={handleChange} 
-                disabled={!isEditing} 
-              />
-            </>
-          )}
+        {/* Role badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+            {role === 'FARMER' ? '🌾' : role === 'DEALER' ? '🏪' : '🚛'}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1rem' }}>{name}</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{role}</div>
+          </div>
         </div>
-        
-        <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-          {isEditing ? (
-            <>
-              <Button variant="secondary" onClick={() => setIsEditing(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button variant="primary" onClick={handleSave} loading={updateMutation.isLoading}>
-                {t('common.save')}
-              </Button>
-            </>
-          ) : (
-             <Button variant="primary" onClick={() => setIsEditing(true)}>
-                {t('common.edit')}
-             </Button>
-          )}
-        </div>
+
+        {/* Common fields */}
+        <Field label="Name"         value={name} />
+        <Field label="Phone Number" value={phone} />
+        <Field label="Address"      value={address} />
+
+        {/* Transporter-specific */}
+        {role === 'TRANSPORTER' && (
+          <>
+            <Field label="Vehicle Details"  value={profile.vehicleDetails} />
+            <Field label="Rate per KM (₹)"  value={profile.ratePerKm ? `₹${profile.ratePerKm}/km` : null} />
+            <Field label="Vehicle Type"     value={vehicleParsed.vehicleType} />
+            <Field label="Vehicle Number"   value={vehicleParsed.vehicleNumber} />
+            <Field label="License Number"   value={vehicleParsed.licenceNumber} />
+            <Field label="Location"         value={vehicleParsed.address} />
+          </>
+        )}
+
+        {/* Farmer/Dealer IDs */}
+        {role === 'FARMER' && <Field label="Farmer ID" value={profile.farmerId} />}
+        {role === 'DEALER' && <Field label="Dealer ID" value={profile.dealerId} />}
       </Card>
     </div>
   );

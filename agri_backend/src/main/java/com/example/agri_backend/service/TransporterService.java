@@ -18,6 +18,7 @@ public class TransporterService {
                 .name(dto.getName())
                 .phone(dto.getPhone())
                 .vehicleDetails(dto.getVehicleDetails())
+                .ratePerKm(dto.getRatePerKm() != null ? dto.getRatePerKm() : 10.0)
                 .build();
         return toDTO(transporterRepository.save(t));
     }
@@ -37,6 +38,7 @@ public class TransporterService {
         dto.setName(t.getName());
         dto.setPhone(t.getPhone());
         dto.setVehicleDetails(t.getVehicleDetails());
+        dto.setRatePerKm(t.getRatePerKm());
         return dto;
     }
 }

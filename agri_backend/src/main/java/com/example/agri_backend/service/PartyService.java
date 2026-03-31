@@ -14,6 +14,9 @@ public class PartyService {
     private final PartyRepository partyRepository;
 
     public PartyDTO create(PartyDTO dto) {
+        if (partyRepository.existsByPhone(dto.getPhone())) {
+            throw new RuntimeException("Phone number already registered");
+        }
         Party party = Party.builder()
                 .name(dto.getName())
                 .phone(dto.getPhone())

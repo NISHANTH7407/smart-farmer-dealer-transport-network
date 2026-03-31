@@ -14,4 +14,5 @@ public class TransporterDTO {
     private String phone;
 
     private String vehicleDetails;
+    private Double ratePerKm;
 }

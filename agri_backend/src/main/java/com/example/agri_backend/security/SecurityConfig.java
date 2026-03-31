@@ -3,6 +3,7 @@ package com.example.agri_backend.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -29,8 +30,23 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                // Preflight
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // Auth - public
                 .requestMatchers("/api/auth/**").permitAll()
+                // Public GET endpoints
+                .requestMatchers(HttpMethod.GET, "/api/lots/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/transporters/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/parties/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/farmers/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/dealers/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/shipments/**").permitAll()
+                // Public POST endpoints for registration
+                .requestMatchers(HttpMethod.POST, "/api/parties").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/farmers").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/dealers").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/transporters").permitAll()
+                // Everything else requires auth
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

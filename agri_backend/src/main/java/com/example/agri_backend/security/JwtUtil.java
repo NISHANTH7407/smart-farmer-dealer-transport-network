@@ -6,13 +6,15 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 
+import java.nio.charset.StandardCharsets;
+
 @Component
 public class JwtUtil {
 
     private static final String SECRET = "agri_super_secret_key_for_jwt_2024_must_be_256bits!!";
-    private static final long EXPIRY_MS = 86400000L; // 24 hours
+    private static final long EXPIRY_MS = 86400000L;
 
-    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
+    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
     public String generateToken(String username, String role, Long entityId, String name) {
         return Jwts.builder()

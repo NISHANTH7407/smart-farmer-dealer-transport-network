@@ -31,12 +31,14 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const inputStyle = {
+const iStyle = {
   width: '100%', padding: '0.5rem 0.75rem', borderRadius: '0.5rem',
   border: '1px solid var(--border-color)', background: 'var(--white)',
   color: 'var(--text-primary)', fontSize: '0.875rem',
 };
-const labelStyle = { display: 'block', fontWeight: 500, fontSize: '0.85rem', marginBottom: '0.25rem' };
+const lStyle = { display: 'block', fontWeight: 500, fontSize: '0.82rem', marginBottom: '0.25rem', color: 'var(--text-secondary)' };
+
+const EMPTY_SHIP = { transporterId: '', fromPartyId: '', toPartyId: '', pickupLocation: '', dropLocation: '', distanceKm: '' };
 
 const DealerDashboard = () => {
   const { user } = useAuth();
@@ -44,19 +46,23 @@ const DealerDashboard = () => {
   const queryClient = useQueryClient();
 
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
-  const [showPayModal, setShowPayModal]           = useState(null);
-  const [showShipModal, setShowShipModal]         = useState(null); // purchase object
-  const [payAmount, setPayAmount]                 = useState('');
-  const [shipForm, setShipForm]                   = useState({ transporterId: '', fromPartyId: '', toPartyId: '' });
+  const [showPayModal,      setShowPayModal]      = useState(null);
+  const [showShipModal,     setShowShipModal]     = useState(null);
+  const [payAmount,         setPayAmount]         = useState('');
+  const [shipForm,          setShipForm]          = useState(EMPTY_SHIP);
 
-  // Queries
-  const { data: lots = [],         isLoading: lotsLoading }      = useQuery({ queryKey: ['availableLots'],            queryFn: getAvailableProduceLots });
-  const { data: purchases = [],    isLoading: purchasesLoading }  = useQuery({ queryKey: ['dealerPurchases', dealerId], queryFn: () => getMyPurchases(dealerId), enabled: !!dealerId });
-  const { data: shipments = [] }                                   = useQuery({ queryKey: ['allShipments'],             queryFn: getAllShipments });
-  const { data: transporters = [] }                                = useQuery({ queryKey: ['transporters'],             queryFn: getAllTransporters });
-  const { data: parties = [] }                                     = useQuery({ queryKey: ['parties'],                  queryFn: getAllParties });
+  const { data: lots        = [], isLoading: lotsLoading }     = useQuery({ queryKey: ['availableLots'],             queryFn: getAvailableProduceLots });
+  const { data: purchases   = [], isLoading: purchasesLoading } = useQuery({ queryKey: ['dealerPurchases', dealerId], queryFn: () => getMyPurchases(dealerId), enabled: !!dealerId });
+  const { data: shipments   = [] }                              = useQuery({ queryKey: ['allShipments'],              queryFn: getAllShipments });
+  const { data: transporters= [] }                              = useQuery({ queryKey: ['transporters'],              queryFn: getAllTransporters });
+  const { data: parties     = [] }                              = useQuery({ queryKey: ['parties'],                   queryFn: getAllParties });
 
-  // Mutations
+  // Dynamic fee calculation
+  const selectedTransporter = transporters.find(t => String(t.transporterId) === String(shipForm.transporterId));
+  const ratePerKm   = selectedTransporter?.ratePerKm || 10;
+  const distanceKm  = parseFloat(shipForm.distanceKm) || 0;
+  const estimatedFee = (distanceKm * ratePerKm).toFixed(2);
+
   const purchaseMutation = useMutation({
     mutationFn: createPurchase,
     onSuccess: () => {
@@ -94,32 +100,36 @@ const DealerDashboard = () => {
       toast.success('Shipment assigned successfully!');
       queryClient.invalidateQueries(['allShipments']);
       setShowShipModal(null);
-      setShipForm({ transporterId: '', fromPartyId: '', toPartyId: '' });
+      setShipForm(EMPTY_SHIP);
     },
-    onError: (err) => toast.error(err.response?.data?.error || 'Shipment creation failed'),
+    onError: (err) => toast.error(err.response?.data?.error || 'Shipment failed'),
   });
 
   const handleAssignShipment = () => {
-    if (!shipForm.transporterId || !shipForm.fromPartyId || !shipForm.toPartyId) {
+    const { transporterId, fromPartyId, toPartyId, pickupLocation, dropLocation, distanceKm } = shipForm;
+    if (!transporterId || !fromPartyId || !toPartyId || !pickupLocation || !dropLocation || !distanceKm) {
       toast.error('Please fill all shipment fields');
       return;
     }
+    if (parseFloat(distanceKm) <= 0) {
+      toast.error('Distance must be greater than 0');
+      return;
+    }
     shipmentMutation.mutate({
-      transporterId: Number(shipForm.transporterId),
-      fromPartyId:   Number(shipForm.fromPartyId),
-      toPartyId:     Number(shipForm.toPartyId),
+      transporterId:  Number(transporterId),
+      fromPartyId:    Number(fromPartyId),
+      toPartyId:      Number(toPartyId),
+      pickupLocation: pickupLocation.trim(),
+      dropLocation:   dropLocation.trim(),
+      distanceKm:     parseFloat(distanceKm),
     });
   };
 
-  // Check if a purchase already has a shipment
-  const purchaseHasShipment = (purchaseId) =>
-    shipments.some(s => s.purchaseId === purchaseId);
-
   const stats = [
-    { label: 'Available Lots', value: lots.length,                                          icon: <Package size={22} />,      color: '#15803d' },
-    { label: 'My Purchases',   value: purchases.length,                                     icon: <ShoppingCart size={22} />, color: '#1d4ed8' },
+    { label: 'Available Lots', value: lots.length,                                           icon: <Package size={22} />,      color: '#15803d' },
+    { label: 'My Purchases',   value: purchases.length,                                      icon: <ShoppingCart size={22} />, color: '#1d4ed8' },
     { label: 'Confirmed',      value: purchases.filter(p => p.status === 'CONFIRMED').length, icon: <Truck size={22} />,        color: '#7c3aed' },
-    { label: 'Pending',        value: purchases.filter(p => p.status === 'PENDING').length,  icon: <CreditCard size={22} />,   color: '#b45309' },
+    { label: 'Pending',        value: purchases.filter(p => p.status === 'PENDING').length,   icon: <CreditCard size={22} />,   color: '#b45309' },
   ];
 
   return (
@@ -131,10 +141,8 @@ const DealerDashboard = () => {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>🏪 Dealer Dashboard</h1>
           <p style={{ color: 'var(--text-secondary)', margin: '0.25rem 0 0', fontSize: '0.9rem' }}>Welcome back, {user?.name}</p>
         </div>
-        <button
-          onClick={() => setShowPurchaseModal(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#1d4ed8', color: '#fff', padding: '0.6rem 1.2rem', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}
-        >
+        <button onClick={() => setShowPurchaseModal(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#1d4ed8', color: '#fff', padding: '0.6rem 1.2rem', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
           <ShoppingCart size={18} /> New Purchase
         </button>
       </div>
@@ -171,9 +179,7 @@ const DealerDashboard = () => {
                   )}
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600 }}>{lot.cropType}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                      Lot #{lot.lotId} · {lot.availableQuantity} {lot.unit} available
-                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lot #{lot.lotId} · {lot.availableQuantity} {lot.unit} available</div>
                     <div style={{ fontSize: '0.8rem', marginTop: '0.2rem' }}>Grade: <strong>{lot.qualityGrade}</strong></div>
                   </div>
                 </div>
@@ -216,7 +222,7 @@ const DealerDashboard = () => {
                           style={{ fontSize: '0.75rem', background: '#dbeafe', color: '#1e40af', padding: '0.2rem 0.6rem', borderRadius: '0.3rem', fontWeight: 600 }}>
                           💳 Pay
                         </button>
-                        <button onClick={() => { setShowShipModal(p); setShipForm({ transporterId: '', fromPartyId: '', toPartyId: '' }); }}
+                        <button onClick={() => { setShowShipModal(p); setShipForm(EMPTY_SHIP); }}
                           style={{ fontSize: '0.75rem', background: '#fef3c7', color: '#92400e', padding: '0.2rem 0.6rem', borderRadius: '0.3rem', fontWeight: 600 }}>
                           🚚 Assign Shipment
                         </button>
@@ -239,9 +245,8 @@ const DealerDashboard = () => {
       <Modal isOpen={!!showPayModal} onClose={() => setShowPayModal(null)} title={`Record Payment — Purchase #${showPayModal}`}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
-            <label style={labelStyle}>Amount (₹) *</label>
-            <input type="number" step="0.01" value={payAmount} onChange={e => setPayAmount(e.target.value)}
-              placeholder="Enter payment amount" style={inputStyle} />
+            <label style={lStyle}>Amount (₹) *</label>
+            <input type="number" step="0.01" value={payAmount} onChange={e => setPayAmount(e.target.value)} placeholder="Enter payment amount" style={iStyle} />
           </div>
           <button
             onClick={() => {
@@ -249,62 +254,85 @@ const DealerDashboard = () => {
               paymentMutation.mutate({ purchaseId: showPayModal, amount: Number(payAmount) });
             }}
             disabled={paymentMutation.isPending}
-            style={{ background: '#1d4ed8', color: '#fff', padding: '0.65rem', borderRadius: '0.5rem', fontWeight: 600, opacity: paymentMutation.isPending ? 0.7 : 1 }}
-          >
+            style={{ background: '#1d4ed8', color: '#fff', padding: '0.65rem', borderRadius: '0.5rem', fontWeight: 600, opacity: paymentMutation.isPending ? 0.7 : 1 }}>
             {paymentMutation.isPending ? 'Processing...' : 'Confirm Payment'}
           </button>
         </div>
       </Modal>
 
       {/* ── Assign Shipment Modal ── */}
-      <Modal isOpen={!!showShipModal} onClose={() => setShowShipModal(null)} title={`Assign Shipment — Purchase #${showShipModal?.purchaseId}`}>
+      <Modal isOpen={!!showShipModal} onClose={() => { setShowShipModal(null); setShipForm(EMPTY_SHIP); }} title={`Assign Shipment — Purchase #${showShipModal?.purchaseId}`}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', padding: '0.75rem', fontSize: '0.85rem', color: '#166534' }}>
-            Select a transporter and the from/to parties for this shipment.
-          </div>
-
+          {/* Transporter selector with rate info */}
           <div>
-            <label style={labelStyle}>Transporter *</label>
-            <select value={shipForm.transporterId} onChange={e => setShipForm(f => ({ ...f, transporterId: e.target.value }))} style={inputStyle}>
+            <label style={lStyle}>Transporter *</label>
+            <select value={shipForm.transporterId} onChange={e => setShipForm(f => ({ ...f, transporterId: e.target.value }))} style={iStyle}>
               <option value="">-- Select Transporter --</option>
               {transporters.map(t => (
                 <option key={t.transporterId} value={t.transporterId}>
-                  {t.name} — {t.vehicleDetails}
+                  {t.name} — {t.vehicleDetails} (₹{t.ratePerKm}/km)
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label style={labelStyle}>From Party (Sender) *</label>
-            <select value={shipForm.fromPartyId} onChange={e => setShipForm(f => ({ ...f, fromPartyId: e.target.value }))} style={inputStyle}>
-              <option value="">-- Select From Party --</option>
-              {parties.map(p => (
-                <option key={p.partyId} value={p.partyId}>
-                  #{p.partyId} — {p.name} ({p.type})
-                </option>
-              ))}
-            </select>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div>
+              <label style={lStyle}>From Party (Sender) *</label>
+              <select value={shipForm.fromPartyId} onChange={e => setShipForm(f => ({ ...f, fromPartyId: e.target.value }))} style={iStyle}>
+                <option value="">-- Select --</option>
+                {parties.map(p => (
+                  <option key={p.partyId} value={p.partyId}>#{p.partyId} — {p.name} ({p.type})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={lStyle}>To Party (Receiver) *</label>
+              <select value={shipForm.toPartyId} onChange={e => setShipForm(f => ({ ...f, toPartyId: e.target.value }))} style={iStyle}>
+                <option value="">-- Select --</option>
+                {parties.map(p => (
+                  <option key={p.partyId} value={p.partyId}>#{p.partyId} — {p.name} ({p.type})</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
-            <label style={labelStyle}>To Party (Receiver) *</label>
-            <select value={shipForm.toPartyId} onChange={e => setShipForm(f => ({ ...f, toPartyId: e.target.value }))} style={inputStyle}>
-              <option value="">-- Select To Party --</option>
-              {parties.map(p => (
-                <option key={p.partyId} value={p.partyId}>
-                  #{p.partyId} — {p.name} ({p.type})
-                </option>
-              ))}
-            </select>
+            <label style={lStyle}>Pickup Location *</label>
+            <input value={shipForm.pickupLocation} onChange={e => setShipForm(f => ({ ...f, pickupLocation: e.target.value }))}
+              placeholder="e.g. Ludhiana, Punjab" style={iStyle} />
           </div>
+
+          <div>
+            <label style={lStyle}>Drop Location *</label>
+            <input value={shipForm.dropLocation} onChange={e => setShipForm(f => ({ ...f, dropLocation: e.target.value }))}
+              placeholder="e.g. Delhi" style={iStyle} />
+          </div>
+
+          <div>
+            <label style={lStyle}>Distance (km) *</label>
+            <input type="number" step="0.1" min="1" value={shipForm.distanceKm}
+              onChange={e => setShipForm(f => ({ ...f, distanceKm: e.target.value }))}
+              placeholder="e.g. 150" style={iStyle} />
+          </div>
+
+          {/* Dynamic fee preview */}
+          {distanceKm > 0 && selectedTransporter && (
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', padding: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.875rem', color: '#166534' }}>
+                {distanceKm} km × ₹{ratePerKm}/km
+              </span>
+              <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#15803d' }}>
+                Estimated Fee: ₹{estimatedFee}
+              </span>
+            </div>
+          )}
 
           <button
             onClick={handleAssignShipment}
             disabled={shipmentMutation.isPending}
-            style={{ background: '#b45309', color: '#fff', padding: '0.65rem', borderRadius: '0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: shipmentMutation.isPending ? 0.7 : 1 }}
-          >
+            style={{ background: '#b45309', color: '#fff', padding: '0.7rem', borderRadius: '0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: shipmentMutation.isPending ? 0.7 : 1 }}>
             <Truck size={18} />
             {shipmentMutation.isPending ? 'Assigning...' : 'Assign Transporter & Create Shipment'}
           </button>

@@ -25,13 +25,22 @@ public class ShipmentService {
         Party to = partyRepository.findById(dto.getToPartyId())
                 .orElseThrow(() -> new RuntimeException("To party not found: " + dto.getToPartyId()));
 
+        // Calculate fee dynamically: distance * ratePerKm
+        double ratePerKm = transporter.getRatePerKm() != null ? transporter.getRatePerKm() : 10.0;
+        double fee = dto.getDistanceKm() * ratePerKm;
+
         Shipment shipment = Shipment.builder()
                 .transporter(transporter)
                 .fromParty(from)
                 .toParty(to)
                 .status(ShipmentStatus.IN_TRANSIT)
                 .shipmentDate(LocalDate.now())
+                .pickupLocation(dto.getPickupLocation())
+                .dropLocation(dto.getDropLocation())
+                .distanceKm(dto.getDistanceKm())
+                .fee(fee)
                 .build();
+
         return toDTO(shipmentRepository.save(shipment));
     }
 
@@ -56,11 +65,19 @@ public class ShipmentService {
         ShipmentDTO dto = new ShipmentDTO();
         dto.setShipmentId(s.getShipmentId());
         dto.setTransporterId(s.getTransporter().getTransporterId());
+        dto.setTransporterName(s.getTransporter().getName());
+        dto.setRatePerKm(s.getTransporter().getRatePerKm());
         dto.setFromPartyId(s.getFromParty().getPartyId());
+        dto.setFromPartyName(s.getFromParty().getName());
         dto.setToPartyId(s.getToParty().getPartyId());
+        dto.setToPartyName(s.getToParty().getName());
         dto.setStatus(s.getStatus());
         dto.setShipmentDate(s.getShipmentDate());
         dto.setDeliveryDate(s.getDeliveryDate());
+        dto.setPickupLocation(s.getPickupLocation());
+        dto.setDropLocation(s.getDropLocation());
+        dto.setDistanceKm(s.getDistanceKm());
+        dto.setFee(s.getFee());
         return dto;
     }
 }

@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Locale;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -56,7 +58,7 @@ public class AuthController {
                 .username(req.getUsername())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .name(req.getName())
-                .role(UserRole.valueOf(req.getRole().toUpperCase()))
+                .role(UserRole.valueOf(req.getRole().toUpperCase(Locale.ROOT)))
                 .entityId(req.getEntityId())
                 .build();
 

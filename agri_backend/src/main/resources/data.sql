@@ -24,12 +24,12 @@ INSERT IGNORE INTO dealer (dealer_id, party_id) VALUES
 (1, 6), (2, 7), (3, 8), (4, 9), (5, 10);
 
 -- TRANSPORTER
-INSERT IGNORE INTO transporter (transporter_id, name, phone, vehicle_details) VALUES
-(1, 'FastMove Logistics', '9111111101', 'Truck - MH12AB1234, 10 Ton'),
-(2, 'SpeedCargo',         '9111111102', 'Mini Truck - DL01CD5678, 5 Ton'),
-(3, 'AgroTransport Co.',  '9111111103', 'Refrigerated Van - KA03EF9012, 3 Ton'),
-(4, 'QuickHaul Services', '9111111104', 'Truck - TN07GH3456, 8 Ton'),
-(5, 'RuralFreight',       '9111111105', 'Pickup - RJ14IJ7890, 2 Ton');
+INSERT IGNORE INTO transporter (transporter_id, name, phone, vehicle_details, rate_per_km) VALUES
+(1, 'FastMove Logistics', '9111111101', 'Truck - MH12AB1234, 10 Ton',          12.0),
+(2, 'SpeedCargo',         '9111111102', 'Mini Truck - DL01CD5678, 5 Ton',       8.0),
+(3, 'AgroTransport Co.',  '9111111103', 'Refrigerated Van - KA03EF9012, 3 Ton', 15.0),
+(4, 'QuickHaul Services', '9111111104', 'Truck - TN07GH3456, 8 Ton',            10.0),
+(5, 'RuralFreight',       '9111111105', 'Pickup - RJ14IJ7890, 2 Ton',           6.0);
 
 -- PRODUCE LOT
 INSERT IGNORE INTO produce_lot (lot_id, farmer_id, crop_type, quantity, unit, harvest_date, quality_grade, available_quantity) VALUES

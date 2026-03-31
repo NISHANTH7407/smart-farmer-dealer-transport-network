@@ -31,5 +31,10 @@ public class Shipment {
     private LocalDate shipmentDate;
     private LocalDate deliveryDate;
 
+    private String pickupLocation;
+    private String dropLocation;
+    private Double distanceKm;
+    private Double fee;
+
     public enum ShipmentStatus { IN_TRANSIT, DELIVERED }
 }

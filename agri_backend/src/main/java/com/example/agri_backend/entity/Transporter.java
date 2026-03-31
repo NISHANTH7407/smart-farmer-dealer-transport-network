@@ -18,4 +18,7 @@ public class Transporter {
     private String phone;
 
     private String vehicleDetails;
+
+    @Builder.Default
+    private Double ratePerKm = 10.0;
 }
